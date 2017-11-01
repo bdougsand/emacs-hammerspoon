@@ -18,7 +18,6 @@
 
 (defun hammerspoon--receive-json (object)
   ;; TODO More interesting handling of input
-  (print object)
   (run-hook-with-args 'hammerspoon-receive-hook object))
 
 (defvar hammerspoon--parse-marker (make-marker))
@@ -40,11 +39,6 @@
             (set-marker hammerspoon--parse-marker (point-max)))
 
         (json-error nil)))))
-
-(hammerspoon-send '(:hello "world"))
-(add-hook 'hammerspoon-receive-hook (lambda (message)
-                                      (print (concat "Got an object with response: "
-                                                     (alist-get 'response message)))))
 
 (defun hammerspoon-connect ()
   (let ((proc (start-process "hammerspoon" "*hammerspoon*"
@@ -75,3 +69,32 @@
 (defun hammerspoon-quit ()
   (hammerspoon--cleanup-process))
 
+(defun hammerspoon--make-pomodoro-event (hook-symbol)
+  (let ((event (make-hash-table)))
+    (puthash :type (-> hook-symbol
+                       (symbol-name)
+                       (substring 4 -5)
+                       (s-lower-camel-case))
+              event)
+    (puthash :time-remaining org-pomodoro-countdown event)
+    (puthash :count org-pomodoro-count event)
+    (puthash :hello "world")
+    event))
+
+(defun hammerspoon--attach-pomodoro-hook (hook-symbol)
+  (add-hook hook-symbol (lambda () (hammerspoon--send-json
+                                    (hammerspoon--make-pomodoro-event hook-symbol)))))
+
+(hammerspoon-connect)
+(add-hook 'hammerspoon-receive-hook (lambda (message)
+                                      (print (concat "Got an object with response: "
+                                                     (alist-get 'response message)))))
+
+(with-eval-after-load 'org-pomodoro
+  (--each '(org-pomodoro-started-hook
+            org-pomodoro-finished-hook
+            org-pomodoro-killed-hook
+            org-pomodoro-break-finished-hook)
+    (hammerspoon--attach-pomodoro-hook it)))
+
+(provide 'hammerspoon)
