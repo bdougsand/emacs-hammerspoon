@@ -2,52 +2,58 @@
 
 
 (defcustom hammerspoon-cl-exec "hs"
-  "The name of the Hammerspoon command line utility")
+  "The name of the Hammerspoon command line utility"
+  :group 'hammerspoon)
 
-(defvar hammerspoon-port-name "emacsInterop")
+(defcustom hammerspoon-port-name "emacsInterop"
+  "The name of the remote port created by Hammerspoon."
+  :group 'hammerspoon)
+
+(defcustom hammerspoon-receive-hook nil
+  "Hook run when emacs receives an object from Hammerspoon."
+  :group 'hammerspoon
+  :type 'hook)
 
 (defvar hammerspoon--subprocess nil)
-
-(setq hammerspoon--subprocess
-      (start-process "hammerspoon" "*hammerspoon*" hammerspoon-cl-exec "-nq" "-m" hammerspoon-port))
 
 (defun hammerspoon--receive-json (object)
   ;; TODO More interesting handling of input
   (print object)
-  ;; TODO Run receive hooks
-  )
+  (run-hook-with-args 'hammerspoon-receive-hook object))
+
+(defvar hammerspoon--parse-marker (make-marker))
+
+(defun hammerspoon--subprocess-filter (proc string)
+  (with-current-buffer (process-buffer proc)
+    (save-excursion
+      (goto-char (process-mark proc))
+      (insert string)
+      (set-marker (process-mark proc) (point))
+
+      ;; Now try to parse more JSON:
+      (goto-char hammerspoon--parse-marker)
+      (search-forward ">>" nil 't)
+      ;; Keep reading in JSON until we encounter a parse error
+      (condition-case err
+          (progn
+            (hammerspoon--receive-json (json-read))
+            (set-marker hammerspoon--parse-marker (point-max)))
+
+        (json-error nil)))))
+
+(hammerspoon-send '(:hello "world"))
+(add-hook 'hammerspoon-receive-hook (lambda (message)
+                                      (print (concat "Got an object with response: "
+                                                     (alist-get 'response message)))))
 
 (defun hammerspoon-connect ()
   (let ((proc (start-process "hammerspoon" "*hammerspoon*"
                              hammerspoon-cl-exec
                              "-n" "-q"
-                             "-m" "emacsInterop"))
-        (initialized nil)
-        ;; keeps track of the furthest point successfully parsed
-        (parse-marker (make-marker)))
-    (set-marker parse-marker 0 (process-buffer proc))
+                             "-m" hammerspoon-port-name)))
     (setq hammerspoon--subprocess proc)
-    (set-process-filter proc
-                        (lambda (proc string)
-                          (with-current-buffer (process-buffer proc)
-                            (search-forward ">")
-                            (save-excursion
-                              (goto-char (process-mark proc))
-                              (insert string)
-                              (set-marker (process-mark proc) (point))
-
-                              ;; Now try to parse more JSON:
-                              (goto-char parse-marker)
-                              ;; Keep reading in JSON until we encounter a parse error
-                              (while (condition-case err
-                                         (progn
-                                           (hammerspoon--receive-json (json-read))
-                                           (set-marker parse-marker (point))
-                                           't)
-
-                                       (json-end-of-file
-                                        (goto-char parse-marker)
-                                        false)))))))))
+    (set-marker hammerspoon--parse-marker 0 (process-buffer proc))
+    (set-process-filter proc 'hammerspoon--subprocess-filter)))
 
 (defun hammerspoon--cleanup-process ()
   (when hammerspoon--subprocess
@@ -61,29 +67,11 @@
       (hammerspoon--connect)))
 
 (defun hammerspoon--send (message)
-  (process-send-string (hammerspoon--get-or-connect) (concat message "\n")))
+  (process-send-string hammerspoon--subprocess (concat message "\n")))
 
 (defun hammerspoon--send-json (object)
   (hammerspoon--send (json-encode object)))
 
 (defun hammerspoon-quit ()
   (hammerspoon--cleanup-process))
-
-(hammerspoon-connect)
-(hammerspoon--send-json '(:hello "world"))
-;; (hammerspoon--send "really long messagereally long messagereally long messagereally long messagereally long messagereally long messagereally long messagereally long messagereally long messagereally long messagereally long messagereally long messagereally long messagereally long messagereally long messagereally long messagereally long messagereally long messagereally long messagereally long messagereally long messagereally long")
-
-
-;; (add-hook 'org-pomodoro-started-hook
-;;           (lambda () (hammerspoon)))
-
-;; (with-current-buffer (process-buffer hammerspoon--subprocess)
-;;   (goto-char 0)
-;;   (goto-char (search-forward ">"))
-;;   (print (point)))
-
-;; (with-current-buffer (process-buffer hammerspoon--subprocess)
-;;   (condition-case err
-;;       (json-read)
-;;     (json-end-of-file (message "okay, wait for more!"))))
 
