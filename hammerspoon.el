@@ -83,8 +83,9 @@
     event))
 
 (defun hammerspoon--attach-pomodoro-hook (hook-symbol)
-  (add-hook hook-symbol (lambda () (hammerspoon--send-json
-                                    (hammerspoon--make-pomodoro-event hook-symbol)))))
+  (lexical-let ((hook-symbol hook-symbol))
+    (add-hook hook-symbol (lambda () (hammerspoon--send-json
+                                      (hammerspoon--make-pomodoro-event hook-symbol))))))
 
 (hammerspoon-connect)
 (add-hook 'hammerspoon-receive-hook (lambda (message)
