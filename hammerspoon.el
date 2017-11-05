@@ -1,4 +1,5 @@
 (require 'json)
+(require 'dash)
 
 
 (defcustom hammerspoon-cl-exec "hs"
