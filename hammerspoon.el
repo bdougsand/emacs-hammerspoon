@@ -85,6 +85,13 @@
     (puthash :count org-pomodoro-count event)
     event))
 
+(defun hammerspoon--get-pomodoro-state ()
+  (hammerspoon--make-pomodoro-event
+   (case org-pomodoro-state
+     (:pomodoro 'org-pomodoro-started-hook)
+     ((:break :longbreak) 'org-pomodoro-finished-hook)
+     (t 'org-pomodoro-killed-hook))))
+
 (defun hammerspoon--attach-pomodoro-hook (hook-symbol)
   (lexical-let ((hook-symbol hook-symbol))
     (add-hook hook-symbol (lambda () (hammerspoon--send-json
