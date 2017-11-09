@@ -81,7 +81,7 @@
                        (substring 4 -5)
                        (s-lower-camel-case))
               event)
-    (puthash :timeRemaining org-pomodoro-countdown event)
+    (puthash :timeRemaining (org-pomodoro-remaining-seconds) event)
     (puthash :count org-pomodoro-count event)
     event))
 
