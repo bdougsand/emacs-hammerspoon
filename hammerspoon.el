@@ -45,6 +45,11 @@
 
         (json-error nil)))))
 
+(defun hammerspoon--sentinel (proc status)
+  (message (concat "Hammerspoon: " status))
+  (kill-buffer (process-buffer proc))
+  (delete-process proc))
+
 (defun hammerspoon-connect ()
   (let ((proc (start-process "hammerspoon" "*hammerspoon*"
                              hammerspoon-cl-exec
@@ -52,7 +57,10 @@
                              "-m" hammerspoon-port-name)))
     (setq hammerspoon--subprocess proc)
     (set-marker hammerspoon--parse-marker 0 (process-buffer proc))
-    (set-process-filter proc 'hammerspoon--subprocess-filter)))
+    (set-process-filter proc 'hammerspoon--subprocess-filter)
+    (set-process-sentinel proc 'hammerspoon--sentinel)
+    hammerspoon--subprocess))
+
 
 (defun hammerspoon--cleanup-process ()
   (when hammerspoon--subprocess
