@@ -1,6 +1,13 @@
+;; hammerspoon.el
+;;
+;;; Commentary:
+
+;; hammerspoon.el establishes a connection to a remote port opened by
+;; [Hammersoon](http://www.hammerspoon.org), an automation tool for macOS,
+;; allowing, for example, event information to be sent.
+
 (require 'json)
 (require 'dash)
-
 
 (defcustom hammerspoon-cl-exec "hs"
   "The name of the Hammerspoon command line utility"
@@ -90,7 +97,9 @@
                        (s-lower-camel-case))
               event)
     (puthash :timeRemaining (org-pomodoro-remaining-seconds) event)
+    (puthash :endTime (float-time org-pomodoro-end-time) event)
     (puthash :count org-pomodoro-count event)
+    (puthash :task org-clock-heading event)
     event))
 
 (defun hammerspoon--get-pomodoro-state ()
@@ -117,7 +126,13 @@
             org-pomodoro-finished-hook
             org-pomodoro-killed-hook
             org-pomodoro-break-finished-hook)
-    (hammerspoon--attach-pomodoro-hook it)))
+    (hammerspoon--attach-pomodoro-hook it))
+
+  (add-hook 'org-clock-in-hook (lambda ()
+                                 (when (eq org-pomodoro-state :pomodoro)
+                                   (hammerspoon--send-json
+                                    (hammerspoon--make-pomodoro-event 'org-clock-in-hook))))))
+
 
 (when hammerspoon-connect-on-start
   (hammerspoon-connect))
