@@ -89,13 +89,15 @@
 (defun hammerspoon-quit ()
   (hammerspoon--cleanup-process))
 
+(defun hammerspoon--event-name-from-hook (hook-symbol)
+  (-> hook-symbol
+      (symbol-name)
+      (substring 4 -5)
+      (s-lower-camel-case)))
+
 (defun hammerspoon--make-pomodoro-event (hook-symbol)
   (let ((event (make-hash-table)))
-    (puthash :type (-> hook-symbol
-                       (symbol-name)
-                       (substring 4 -5)
-                       (s-lower-camel-case))
-              event)
+    (puthash :type (hammerspoon--event-name-from-hook hook-symbol) event)
     (puthash :timeRemaining (org-pomodoro-remaining-seconds) event)
     (puthash :endTime (float-time org-pomodoro-end-time) event)
     (puthash :count org-pomodoro-count event)
