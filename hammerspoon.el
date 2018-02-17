@@ -102,7 +102,12 @@
     (puthash :endTime (float-time org-pomodoro-end-time) event)
     (puthash :count org-pomodoro-count event)
     (puthash :task org-clock-heading event)
+    (puthash :bufferName (-> (marker-buffer org-clock-hd-marker)
+                              (buffer-name)
+                              (file-name-sans-extension))
+             event)
     event))
+
 
 (defun hammerspoon--get-pomodoro-state ()
   (hammerspoon--make-pomodoro-event
