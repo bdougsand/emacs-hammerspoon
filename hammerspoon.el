@@ -95,19 +95,27 @@
       (substring 4 -5)
       (s-lower-camel-case)))
 
+(defun hammerspoon--get-clock-path ()
+  (when-let ((buff (marker-buffer org-clock-hd-marker)))
+    (with-current-buffer buff
+      (save-excursion
+        (goto-char org-clock-hd-marker)
+        (org-get-outline-path 't)))))
+
+(defun hammerspoon--get-buffer-name ()
+  (-some-> (marker-buffer org-clock-hd-marker)
+           (buffer-name)
+           (file-name-sans-extension)))
+
 (defun hammerspoon--make-pomodoro-event (hook-symbol)
   (let ((event (make-hash-table)))
     (puthash :type (hammerspoon--event-name-from-hook hook-symbol) event)
     (puthash :timeRemaining (org-pomodoro-remaining-seconds) event)
     (puthash :endTime (float-time org-pomodoro-end-time) event)
     (puthash :count org-pomodoro-count event)
-    (puthash :task org-clock-heading event)
-    (puthash :bufferName (-> (marker-buffer org-clock-hd-marker)
-                              (buffer-name)
-                              (file-name-sans-extension))
-             event)
+    (puthash :bufferName (hammerspoon--get-buffer-name) event)
+    (puthash :taskPath (hammerspoon--get-clock-path) event)
     event))
-
 
 (defun hammerspoon--get-pomodoro-state ()
   (hammerspoon--make-pomodoro-event
@@ -145,3 +153,6 @@
   (hammerspoon-connect))
 
 (provide 'hammerspoon)
+
+
+
