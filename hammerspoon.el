@@ -8,6 +8,7 @@
 
 (require 'json)
 (require 'dash)
+(require 'org-pomodoro)
 
 (defcustom hammerspoon-cl-exec "hs"
   "The name of the Hammerspoon command line utility"
@@ -106,6 +107,18 @@
   (-some-> (marker-buffer org-clock-hd-marker)
            (buffer-name)
            (file-name-sans-extension)))
+
+(defun hammerspoon--total-time-today-files (files)
+    (-reduce-from (lambda (total agenda-file)
+                    (let* ((buff (or (get-file-buffer agenda-file)
+                                     (create-file-buffer agenda-file))))
+                      (+ total (with-current-buffer buff
+                                 (org-clock-sum-today)))))
+                  0
+                  files))
+
+(defun hammerspoon--total-time-today ()
+  (hammerspoon--total-time-today-files org-agenda-files))
 
 (defun hammerspoon--make-pomodoro-event (hook-symbol)
   (let ((event (make-hash-table)))
