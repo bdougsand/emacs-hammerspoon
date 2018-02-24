@@ -108,6 +108,21 @@
            (buffer-name)
            (file-name-sans-extension)))
 
+(defun hammerspoon--get-current-subtree-text ()
+  "Returns the full text of the subtree associated with the current clock."
+  (with-current-buffer (marker-buffer org-clock-hd-marker)
+    (save-excursion
+      (goto-char org-clock-hd-marker)
+      ; (org-get-entry)
+      (save-match-data
+        (org-with-limited-levels
+         (buffer-substring-no-properties
+          (progn (org-back-to-heading t)
+                 (org-end-of-meta-data t)
+                 (point))
+          (progn (org-end-of-subtree t t)
+                 (point))))))))
+
 (defun hammerspoon--total-time-today-files (files)
     (-reduce-from (lambda (total agenda-file)
                     (let* ((buff (or (get-file-buffer agenda-file)
