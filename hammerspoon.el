@@ -108,6 +108,25 @@
            (buffer-name)
            (file-name-sans-extension)))
 
+;; TODO Get entire subtree as JSON: text and properties
+;; See definitions of org-forward-element and org-down-element
+
+(defun explore-subtree ()
+  (let ((children (save-excursion
+                    (build-list (lambda ()
+                                  (when (ignore-errors (org-down-element)
+                                                         (point))
+                                    )))))))
+  (let ((children (list))) (save-excursion
+     (unless (ignore-errors (org-down-element))
+       ))))
+
+(defun build-list (fn)
+  (let ((l nil)
+        (next-val nil))
+    (while (setq next-val (funcall fn))
+      (setq l (cons next-val l)))
+    (nreverse l)))
 (defun hammerspoon--get-current-subtree-text ()
   "Returns the full text of the subtree associated with the current clock."
   (with-current-buffer (marker-buffer org-clock-hd-marker)
@@ -123,6 +142,11 @@
           (progn (org-end-of-subtree t t)
                  (point))))))))
 
+(defun hammerspoon--get-current-subtree ()
+  "Get the properties of the "
+  (when-let ((buff (marker-buffer org-clock-hd-marker)))
+    (with-current-buffer buff
+      (org-entry-properties (point)))))
 (defun hammerspoon--total-time-today-files (files)
     (-reduce-from (lambda (total agenda-file)
                     (let* ((buff (or (get-file-buffer agenda-file)
